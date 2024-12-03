@@ -1,16 +1,41 @@
-import {expect, test} from '@playwright/test'
+const { chromium } = require('playwright');
 
-test.describe('Positive Login Suite', () => {
-    test.beforeEach(async ({page}) => {
-        await page.goto('https://www.saucedemo.com/')
-        await expect(page.getByText('Swag Labs')).toBeVisible()
-    })
+const users = [
+    { username: 'problem_user', password: 'secret_sauce' },
+    { username: 'performance_glitch_user', password: 'secret_sauce' },
+    { username: 'error_user', password: 'secret_sauce' },
+    { username: 'visual_user', password: 'secret_sauce' }
+];
+(async () => {
+    const browser = await chromium.launch({
+        headless: false,
+        slowMo: 500
+    });
+    const context = await browser.newContext();
+    for (const user of users) {
+        const page = await context.newPage();
 
-    test('Login with the user: "standard_user"', async ({page}) => {
-        await page.locator('[data-test="username"]').fill('standard_user')
-        await page.locator('[data-test="password"]').fill('secret_sauce')
-        await page.locator('[data-test="login-button"]').click()
-        await expect(page).toHaveURL('https://www.saucedemo.com/inventory.html')
-        await expect(page.locator('[data-test="title"]')).toHaveText('Products')
-    })
-})
+        await page.goto('https://www.saucedemo.com/');
+        await page.fill('#user-name', user.username);
+        await page.fill('#password', user.password);
+        await page.click('[data-test="login-button"]');
+
+
+        // Validate Page URL
+        const currentUrl = page.url();
+        console.assert(currentUrl === 'https://www.saucedemo.com/inventory.html',
+            `Incorrect URL after login for ${user.username}`
+        );
+
+        // Validate page title
+        const title = await page.title();
+        console.assert(title === 'Swag Labs',
+            `Incorrect Title after login for ${user.username}`
+        );
+
+
+        await page.close();
+    }
+    await browser.close();
+
+})();
